@@ -27,7 +27,7 @@ view model =
   in
   { title = "Photo Groove, SPA Style"
   , body =
-    [ viewHeader model.page
+    [ lazy viewHeader model.page
     , content
     , viewFooter
     ]
