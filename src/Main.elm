@@ -1,9 +1,12 @@
 module Main exposing (main)
 
-import Browser exposing (Document)
+import Browser exposing (application, Document)
+import Browser.Navigation as Nav
 import Html exposing (Html, a, footer,h1, li, nav, text, ul)
 import Html.Attributes exposing (classList, href)
-import Html exposing (caption)
+import Html.Lazy exposing (lazy)
+import Url exposing (Url)
+import Url.Parser as Parser exposing ((</>), Parser, s, string)
 
 
 type alias Model =
@@ -11,7 +14,8 @@ type alias Model =
 
 
 type Page
-    = Gallery
+    = SelectedPhoto String
+    | Gallery
     | Folders
     | NotFound
 
@@ -46,11 +50,24 @@ viewHeader page =
       ]
 
     navLink : Page -> { url : String, caption : String } -> Html msg
-    navLink targetPage { url, caption } =
-      li [ classList [ ( "active", page == targetPage ) ] ]
+    navLink route { url, caption } =
+      li [ classList [ ( "active", isActive { link = route,
+        page = page } ) ] ]
         [ a [ href url ] [ text caption ] ]
   in
   nav [] [ logo, links ]
+
+
+isActive : { link : Page, page : Page } -> Bool
+isActive { link, page } =
+  case ( link, page ) of
+    ( Gallery, Gallery ) -> True
+    ( Gallery, _ ) -> False
+    ( Folders, Folders ) -> True
+    ( Folders, SelectedPhoto _ ) -> True
+    ( Folders, _ ) -> False
+    ( SelectedPhoto _, _ ) -> False
+    ( NotFound, _ ) -> False
 
 
 type Msg =
@@ -67,11 +84,33 @@ subscriptions model =
     Sub.none
 
 
+init : () -> Url -> Nav.Key -> ( Model, Cmd msg )
+init flags url key =
+  ( { page = urlToPage url }, Cmd.none )
+
+
+urlToPage : Url -> Page
+urlToPage url =
+  Parser.parse parser url
+    |> Maybe.withDefault NotFound
+
+
+parser : Parser (Page -> a) a
+parser =
+  Parser.oneOf
+    [ Parser.map Folders Parser.top
+    , Parser.map Gallery (s "gallery")
+    , Parser.map SelectedPhoto (s "photos" </> Parser.string)
+    ]
+
+
 main : Program () Model Msg
 main =
-    Browser.document
-        { init = \_ -> ( { page = Folders }, Cmd.none )
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
+  Browser.application
+    { init = \_ _ _ -> ( { page = Folders }, Cmd.none )
+    , onUrlRequest = \_ -> Debug.todo "Handle URL requests"
+    , onUrlChange = \_ -> Debug.todo "Handle URL changes"
+    , view = view
+    , update = update
+    , subscriptions = \_ -> Sub.none
+    }
