@@ -13,7 +13,10 @@ import PhotoGallery as Gallery
 
 
 type alias Model =
-  { page : Page, key : Nav.Key }
+  { page : Page
+  , key : Nav.Key
+  , version : Float
+  }
 
 
 type Page
@@ -94,7 +97,7 @@ update msg model =
           ( model, Nav.pushUrl model.key (Url.toString url) )
 
     ChangedUrl url ->
-      ( { model | page = urlToPage url }, Cmd.none )
+      ( { model | page = urlToPage model.version url }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -102,22 +105,24 @@ subscriptions model =
     Sub.none
 
 
-init : () -> Url -> Nav.Key -> ( Model, Cmd msg )
-init flags url key =
-  ( { page = urlToPage url, key = key }, Cmd.none )
+init : Float -> Url -> Nav.Key -> ( Model, Cmd msg )
+init version url key =
+  ( { page = urlToPage version url, key = key, version = version }
+  , Cmd.none
+  )
 
 
-urlToPage : Url -> Page
-urlToPage url =
+urlToPage : Float -> Url -> Page
+urlToPage version url =
   case Parser.parse parser url of
     Just Gallery ->
-      GalleryPage (Tuple.first (Gallery.init 1) )
+      GalleryPage (Tuple.first (Gallery.init version) )
 
     Just Folders ->
-      FoldersPage (Tuple.first (Folders.init ()) )
+      FoldersPage (Tuple.first (Folders.init Nothing) )
 
     Just (SelectedPhoto filename) ->
-      FoldersPage (Tuple.first (Folders.init ()) )
+      FoldersPage (Tuple.first (Folders.init (Just filename)) )
 
     Nothing ->
       NotFound
@@ -132,7 +137,7 @@ parser =
     ]
 
 
-main : Program () Model Msg
+main : Program Float Model Msg
 main =
   Browser.application
     { init = init

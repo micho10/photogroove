@@ -1,6 +1,5 @@
 module PhotoFolders exposing (Model, Msg, init, update, view)
 
-import Browser
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (class, src)
@@ -34,9 +33,9 @@ initialModel =
   }
 
 
-init : () -> (Model, Cmd Msg)
-init _ =
-  ( initialModel
+init : Maybe String -> (Model, Cmd Msg)
+init selectedFilename =
+  ( { initialModel | selectedPhotoUrl = selectedFilename }
   , Http.get
     { url = "http://elm-in-action.com/folders/list"
     , expect = Http.expectJson GotInitialModel modelDecoder
@@ -99,16 +98,6 @@ view model =
           ]
         , div [ class "selected-photo" ][ selectedPhoto ]
         ]
-
-
-main : Program () Model Msg
-main =
-  Browser.element
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = \_ -> Sub.none
-    }
 
 
 type alias Photo =
